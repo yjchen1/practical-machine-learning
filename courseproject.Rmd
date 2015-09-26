@@ -1,0 +1,102 @@
+---
+title: "Practical Machine Learning Project"
+output: html_document
+---
+##Background
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement - a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. 
+
+
+##Loading libraries
+```{r}
+library(caret)
+library(lattice)
+library(ggplot2)
+library(randomForest)
+library(rpart)
+library(rpart.plot)
+library(rattle)
+```
+
+#Read Data File
+```{r}
+
+trainingData <-read.csv("pml-training.csv", na.strings=c("#DIV/0!"," ", "", "NA", "NAs", "NULL"))
+testingData <-read.csv("pml-testing.csv", na.strings=c("#DIV/0!"," ", "", "NA", "NAs", "NULL"))
+dim(trainingData); dim(testingData)
+
+set.seed(12345)
+#Partion Training Data into 2 data sets; 70% for Training, 30% for Testing:
+trainingP <-createDataPartition(trainingData$classe, p=0.7, list=FALSE)
+training <-trainingData[trainingP,]
+testing <-trainingData[-trainingP,]
+dim(training);dim(testing)
+
+```
+##Data Cleansing
+```{r}
+# Remove irrelevant columns 1 to 7 "user_name","raw_timestamp_part_1","raw_timestamp_part_2","cvtd_timestamp","new_window","num_window",
+trainingCleanse <-training[, -(1:7)]
+dim(trainingCleanse)
+
+# Remove vairables with Near Zero Variance
+nzvTraining <-nearZeroVar(trainingCleanse, saveMetrics=TRUE)
+training <-trainingCleanse[,!nzvTraining$nzv]
+dim(training)
+
+# Remove col with more than 60% NA values
+colRemove <-vector()
+j <- 0
+for(i in 1:ncol(training)){
+  if((sum(is.na(training[,i]))/nrow(training))>=0.60){
+    j<-j+1
+    colRemove[j]<-i
+  }
+}
+training <-training[,-colRemove]
+dim(training)
+
+```
+#Prediction Model - Decision Tree
+```{r}
+pModel1 <-rpart(classe ~ ., data=training, method="class")
+
+#Plot
+fancyRpartPlot(pModel1)
+
+#Predict
+pModelD <-predict(pModel1, testing, type = "class") 
+
+#Using confusion Matrix to test result on testing data 
+confusionMatrix(pModelD, testing$classe)           
+```
+#Prediction Model - Random Forest
+```{r}
+pModel2 <-randomForest(classe ~., data=training, method="class")
+
+#Predict
+pModelF <-predict(pModel2, testing, type = "class")
+
+#Using confusion Matrix to test result on testing data 
+confusionMatrix(pModelF, testing$classe)
+```
+
+#Analysis Result
+From the above, we can conclude that Random Forest provides a better accuracy in testing dataset of 99.25%, in comparison to Decision Tree. When comes to the expected out-of-sample error, Random Tree is (100-99.25) = 0.75%.
+
+
+#Test set prediction
+```{r}
+final <- predict(pModel2, testingData, type="class")
+ans <- as.vector(final)
+
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(ans)
+
+```
