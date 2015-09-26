@@ -83,7 +83,7 @@ confusionMatrix(pModelF, testing$classe)
 ```
 
 #Analysis Result
-From the above, we can conclude that Random Forest provides a better accuracy in testing dataset of 99.25%, in comparison to Decision Tree. When comes to the expected out-of-sample error, Random Tree is (100-99.25) = 0.75%.
+From the above, we can conclude that Random Forest provides a better accuracy in testing dataset of 99.18%, in comparison to Decision Tree. When comes to the expected out-of-sample error, Random Tree is (100-99.18) = 0.82%.
 
 
 #Test set prediction
